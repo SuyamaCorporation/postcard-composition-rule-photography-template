@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>写真構図ルール解説チェックリスト</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .rule-card { transition: box-shadow 0.2s; }
+    .rule-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    .checked-rule { border-left: 4px solid #6366f1; background: #eef2ff; }
+    #exportModal { backdrop-filter: blur(4px); }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <div class="max-w-2xl mx-auto px-4 py-8">
+    <h1 class="text-2xl font-bold text-center text-gray-800 mb-1">📷 写真構図ルール解説</h1>
+    <p class="text-center text-gray-500 text-sm mb-6">10の構図ルールを確認して、撮影クオリティを上げよう</p>
+
+    <!-- Progress -->
+    <div class="bg-white rounded-2xl shadow p-4 mb-6 flex items-center gap-4">
+      <div class="flex-1">
+        <div class="flex justify-between text-sm mb-1">
+          <span class="text-gray-600">チェック済み</span>
+          <span class="font-bold text-indigo-600"><span id="checkedCount">0</span> / 10</span>
+        </div>
+        <div class="w-full bg-gray-100 rounded-full h-2.5">
+          <div id="progressBar" class="h-2.5 rounded-full bg-indigo-500 transition-all duration-300" style="width:0%"></div>
+        </div>
+      </div>
+      <button onclick="showExport()" class="bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold px-4 py-2 rounded-lg whitespace-nowrap">
+        エクスポート
+      </button>
+    </div>
+
+    <!-- Rules -->
+    <div id="ruleList" class="space-y-4"></div>
+
+    <!-- Reset -->
+    <div class="mt-6 text-center">
+      <button onclick="resetAll()" class="text-xs text-gray-400 hover:text-red-400 underline">チェックをリセット</button>
+    </div>
+  </div>
+
+  <!-- Export Modal -->
+  <div id="exportModal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[80vh] flex flex-col">
+      <div class="flex justify-between items-center p-4 border-b">
+        <h2 class="font-semibold text-gray-800">チェックリスト エクスポート</h2>
+        <button onclick="closeExport()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+      </div>
+      <div class="flex-1 overflow-auto p-4">
+        <pre id="exportText" class="text-xs text-gray-700 whitespace-pre-wrap font-mono bg-gray-50 p-3 rounded-lg"></pre>
+      </div>
+      <div class="p-4 border-t">
+        <button onclick="copyExport()" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2 rounded-lg text-sm">
+          クリップボードにコピー
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const rules = [
+      {
+        id: 1,
+        name: '三分割法',
+        en: 'Rule of Thirds',
+        desc: '画面を縦横それぞれ3等分した交点（4つのパワーポイント）に被写体を配置する。水平線は上下1/3の位置に合わせる。',
+        tips: '交点に目・顔・主役を置くと視線が自然に集まる',
+        svg: `<svg viewBox="0 0 120 80" class="w-full h-full">
+          <rect width="120" height="80" fill="#f0f4ff" rx="4"/>
+          <line x1="40" y1="0" x2="40" y2="80" stroke="#6366f1" stroke-width="1" stroke-dasharray="3,2"/>
+          <line x1="80" y1="0" x2="80" y2="80" stroke="#6366f1" stroke-width="1" stroke-dasharray="3,2"/>
+          <line x1="0" y1="27" x2="120" y2="27" stroke="#6366f1" stroke-width="1" stroke-dasharray="3,2"/>
+          <line x1="0" y1="53" x2="120" y2="53" stroke="#6366f1" stroke-width="1" stroke-dasharray="3,2"/>
+          <circle cx="40" cy="27" r="4" fill="#6366f1" opacity="0.8"/>
+          <circle cx="80" cy="27" r="4" fill="#6366f1" opacity="0.8"/>
+          <circle cx="40" cy="53" r="4" fill="#6366f1" opacity="0.8"/>
+          <circle cx="80" cy="53" r="4" fill="#6366f1" opacity="0.8"/>
+        </svg>`
+      },
+      {
+        id: 2,
+        name: '黄金螺旋',
+        en: 'Golden Spiral',
+        desc: 'フィボナッチ数列に基づく螺旋。被写体の目線・動き・重要要素を螺旋の中心に合わせる。',
+        tips: '螺旋の内側の焦点に主役を置き、外側に流れを作る',
+        svg: `<svg viewBox="0 0 120 80" class="w-full h-full">
+          <rect width="120" height="80" fill="#fff7ed" rx="4"/>
+          <path d="M 10 10 Q 10 70 70 70 Q 110 70 110 40 Q 110 20 90 20 Q 76 20 76 32 Q 76 44 86 44 Q 94 44 94 38" fill="none" stroke="#f59e0b" stroke-width="2"/>
+          <circle cx="86" cy="38" r="3" fill="#f59e0b"/>
+          <rect x="10" y="10" width="100" height="60" fill="none" stroke="#fcd34d" stroke-width="1" rx="2"/>
+        </svg>`
+      },
+      {
+        id: 3,
+        name: 'フレーミング',
+        en: 'Framing',
+        desc: '自然の要素（木の枝・窓・アーチ・洞窟）を使って被写体を囲み、自然なフレームを作る。',
+        tips: '前景のフレームは少しボカすと奥行き感が増す',
+        svg: `<svg viewBox="0 0 120 80" class="w-full h-full">
+          <rect width="120" height="80" fill="#f0fdf4" rx="4"/>
+          <rect x="8" y="8" width="104" height="64" fill="none" stroke="#22c55e" stroke-width="8" rx="4" opacity="0.4"/>
+          <rect x="20" y="20" width="80" height="40" fill="#dcfce7" rx="2"/>
+          <circle cx="60" cy="40" r="10" fill="#86efac"/>
+          <circle cx="60" cy="34" r="4" fill="#4ade80"/>
+        </svg>`
+      },
+      {
+        id: 4,
+        name: 'リーディングライン',
+        en: 'Leading Lines',
+        desc: '道・柵・川・建物の縁などの直線・曲線を使い、視線を被写体へ自然に誘導する。',
+        tips: '線が画面の隅から被写体に向かうと効果的',
+        svg: `<svg viewBox="0 0 120 80" class="w-full h-full">
+          <rect width="120" height="80" fill="#eff6ff" rx="4"/>
+          <line x1="10" y1="75" x2="80" y2="20" stroke="#3b82f6" stroke-width="2.5"/>
+          <line x1="30" y1="78" x2="90" y2="22" stroke="#3b82f6" stroke-width="2.5"/>
+          <circle cx="85" cy="18" r="8" fill="#60a5fa" opacity="0.8"/>
+          <circle cx="85" cy="15" r="3" fill="#2563eb"/>
+        </svg>`
+      },
+      {
+        id: 5,
+        name: '前景配置',
+        en: 'Foreground Interest',
+        desc: '手前に興味を引く要素（岩・花・草）を配置して奥行きと立体感を演出する。',
+        tips: '前景・中景・背景の3層構造で空間が生まれる',
+        svg: `<svg viewBox="0 0 120 80" class="w-full h-full">
+          <rect width="120" height="80" fill="#f0fdf4" rx="4"/>
+          <ellipse cx="60" cy="10" rx="50" ry="15" fill="#bfdbfe" opacity="0.6"/>
+          <rect x="20" y="30" width="80" height="20" fill="#bbf7d0" rx="2"/>
+          <ellipse cx="20" cy="70" rx="18" ry="10" fill="#4ade80" opacity="0.8"/>
+          <ellipse cx="60" cy="72" rx="22" ry="10" fill="#22c55e" opacity="0.9"/>
+          <ellipse cx="100" cy="70" rx="18" ry="10" fill="#16a34a" opacity="0.8"/>
+        </svg>`
+      },
+      {
+        id: 6,
+        name: '対称性',
+        en: 'Symmetry',
+        desc: '水面反射・建物・橋など左右・上下対称な構図で安定感・荘厳さ・美しさを表現する。',
+        tips: '完全対称より少しずらす方が緊張感が生まれる',
+        svg: `<svg viewBox="0 0 120 80" class="w-full h-full">
+          <rect width="120" height="80" fill="#faf5ff" rx="4"/>
+          <line x1="60" y1="0" x2="60" y2="80" stroke="#a78bfa" stroke-width="1" stroke-dasharray="3,2"/>
+          <rect x="25" y="10" width="30" height="50" fill="#c4b5fd" rx="3" opacity="0.7"/>
+          <rect x="65" y="10" width="30" height="50" fill="#c4b5fd" rx="3" opacity="0.7"/>
+          <rect x="40" y="20" width="10" height="30" fill="#7c3aed" opacity="0.6"/>
+          <rect x="70" y="20" width="10" height="30" fill="#7c3aed" opacity="0.6"/>
+        </svg>`
+      },
+      {
+        id: 7,
+        name: '被写体の向き',
+        en: 'Subject Direction',
+        desc: '被写体が向いている方向に空間（ルーム）を設ける。左向きなら画面右に余白を作る。',
+        tips: 'ルームが少なすぎると窮屈感、多すぎると散漫な印象になる',
+        svg: `<svg viewBox="0 0 120 80" class="w-full h-full">
+          <rect width="120" height="80" fill="#fff7ed" rx="4"/>
+          <circle cx="40" cy="40" r="14" fill="#fed7aa"/>
+          <circle cx="40" cy="34" r="5" fill="#ea580c"/>
+          <polygon points="50,40 60,36 60,44" fill="#ea580c" opacity="0.6"/>
+          <text x="75" y="43" font-size="8" fill="#f97316" opacity="0.5">ルーム</text>
+          <line x1="62" y1="40" x2="108" y2="40" stroke="#fdba74" stroke-width="1" stroke-dasharray="2,2"/>
+        </svg>`
+      },
+      {
+        id: 8,
+        name: 'ネガティブスペース',
+        en: 'Negative Space',
+        desc: '被写体の周囲に意図的に空白（ネガティブスペース）を配置し、被写体を際立たせる。',
+        tips: '空白が大きいほど孤独感・静けさを強調できる',
+        svg: `<svg viewBox="0 0 120 80" class="w-full h-full">
+          <rect width="120" height="80" fill="#e0f2fe" rx="4"/>
+          <circle cx="90" cy="45" r="12" fill="#0ea5e9" opacity="0.9"/>
+          <circle cx="90" cy="40" r="4" fill="#0369a1"/>
+        </svg>`
+      },
+      {
+        id: 9,
+        name: 'レイヤリング',
+        en: 'Layering',
+        desc: '異なる距離の複数要素を重ねることで写真に深みを生む。テクスチャ・パターンの繰り返しも有効。',
+        tips: '色の濃淡（近=濃い、遠=淡い）で空気遠近法も活用',
+        svg: `<svg viewBox="0 0 120 80" class="w-full h-full">
+          <rect width="120" height="80" fill="#f8fafc" rx="4"/>
+          <ellipse cx="60" cy="65" rx="55" ry="12" fill="#94a3b8" opacity="0.3"/>
+          <ellipse cx="60" cy="52" rx="40" ry="10" fill="#64748b" opacity="0.4"/>
+          <ellipse cx="60" cy="40" rx="28" ry="8" fill="#475569" opacity="0.5"/>
+          <ellipse cx="60" cy="30" rx="16" ry="6" fill="#334155" opacity="0.7"/>
+          <ellipse cx="60" cy="22" rx="8" ry="4" fill="#1e293b" opacity="0.9"/>
+        </svg>`
+      },
+      {
+        id: 10,
+        name: 'シンプル化',
+        en: 'Simplification',
+        desc: 'ごちゃごちゃした背景を排除し、被写体一点に絞ったミニマルな構図で強いメッセージを伝える。',
+        tips: 'シャッタースピード・絞り・移動で不要な要素を消す',
+        svg: `<svg viewBox="0 0 120 80" class="w-full h-full">
+          <rect width="120" height="80" fill="#fafafa" rx="4"/>
+          <circle cx="60" cy="40" r="20" fill="#e5e7eb"/>
+          <circle cx="60" cy="40" r="12" fill="#d1d5db"/>
+          <circle cx="60" cy="40" r="6" fill="#374151"/>
+        </svg>`
+      }
+    ];
+
+    let checked = {};
+
+    function load() {
+      const saved = localStorage.getItem('photo-composition-checked');
+      if (saved) {
+        try { checked = JSON.parse(saved); } catch(e) { checked = {}; }
+      }
+      renderRules();
+    }
+
+    function toggleCheck(id) {
+      checked[id] = !checked[id];
+      localStorage.setItem('photo-composition-checked', JSON.stringify(checked));
+      renderRules();
+    }
+
+    function renderRules() {
+      const list = document.getElementById('ruleList');
+      const count = Object.values(checked).filter(Boolean).length;
+      document.getElementById('checkedCount').textContent = count;
+      document.getElementById('progressBar').style.width = (count / 10 * 100) + '%';
+
+      list.innerHTML = '';
+      rules.forEach(rule => {
+        const isChecked = !!checked[rule.id];
+        const card = document.createElement('div');
+        card.className = 'rule-card bg-white rounded-2xl shadow p-4 ' + (isChecked ? 'checked-rule' : '');
+
+        const header = document.createElement('div');
+        header.className = 'flex items-start gap-3';
+
+        const svgWrap = document.createElement('div');
+        svgWrap.className = 'w-24 h-16 flex-shrink-0 rounded-lg overflow-hidden';
+        svgWrap.innerHTML = rule.svg; // xss-ok: static SVG literals from RULES constant, no user input
+
+        const content = document.createElement('div');
+        content.className = 'flex-1';
+
+        const titleRow = document.createElement('div');
+        titleRow.className = 'flex items-center justify-between mb-1';
+
+        const title = document.createElement('div');
+        title.className = 'font-semibold text-gray-800';
+        title.textContent = rule.name;
+
+        const en = document.createElement('div');
+        en.className = 'text-xs text-gray-400';
+        en.textContent = rule.en;
+
+        const checkBtn = document.createElement('button');
+        checkBtn.className = 'w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ' +
+          (isChecked ? 'bg-indigo-500 border-indigo-500 text-white' : 'border-gray-300 text-transparent');
+        checkBtn.textContent = '✓';
+        const ruleId = rule.id;
+        checkBtn.addEventListener('click', function() { toggleCheck(ruleId); });
+
+        titleRow.appendChild(title);
+        titleRow.appendChild(checkBtn);
+
+        const desc = document.createElement('p');
+        desc.className = 'text-xs text-gray-600 mb-1';
+        desc.textContent = rule.desc;
+
+        const tip = document.createElement('p');
+        tip.className = 'text-xs text-indigo-600 font-medium';
+        tip.textContent = '💡 ' + rule.tips;
+
+        content.appendChild(titleRow);
+        content.appendChild(en);
+        content.appendChild(desc);
+        content.appendChild(tip);
+
+        header.appendChild(svgWrap);
+        header.appendChild(content);
+        card.appendChild(header);
+        list.appendChild(card);
+      });
+    }
+
+    function showExport() {
+      const lines = ['# 写真構図チェックリスト\n'];
+      rules.forEach(r => {
+        const mark = checked[r.id] ? '[x]' : '[ ]';
+        lines.push(mark + ' **' + r.name + '** (' + r.en + ')');
+        lines.push('   ' + r.desc);
+        lines.push('   > ' + r.tips);
+        lines.push('');
+      });
+      const count = Object.values(checked).filter(Boolean).length;
+      lines.push('確認済み: ' + count + '/10');
+      document.getElementById('exportText').textContent = lines.join('\n');
+      document.getElementById('exportModal').classList.remove('hidden');
+    }
+
+    function closeExport() {
+      document.getElementById('exportModal').classList.add('hidden');
+    }
+
+    function copyExport() {
+      const text = document.getElementById('exportText').textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.querySelector('#exportModal button:last-child');
+        const orig = btn.textContent;
+        btn.textContent = 'コピーしました！';
+        setTimeout(() => { btn.textContent = orig; }, 1500);
+      });
+    }
+
+    function resetAll() {
+      if (confirm('チェックをすべてリセットしますか？')) {
+        checked = {};
+        localStorage.removeItem('photo-composition-checked');
+        renderRules();
+      }
+    }
+
+    load();
+  </script>
+</body>
+</html>
